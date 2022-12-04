@@ -1,0 +1,59 @@
+﻿@page "/"
+@using RadzenControlsTest.Shared
+
+<h1>DataGrid Self-Reference Hierarchy</h1>
+
+<p>This page demonstrates how to use LoadChildData event to create a Radzen Blazor DataGrid self-reference hierarchy.</p>
+
+<RadzenDataGrid @ref="grid" AllowFiltering="true" AllowSorting="true" AllowColumnResize="true" ExpandMode="DataGridExpandMode.Single"
+                Data="@employees" TItem="Employee" RowRender="@RowRender" LoadChildData="@LoadChildData">
+    <Columns>
+        <!-- <RadzenDataGridColumn TItem="Employee" Property="EmployeeID" Filterable="false" Title="ID" Frozen="true" Width="120px" /> -->
+        <RadzenDataGridColumn TItem="Employee" Title="Employee" Frozen="true" Sortable="false" Filterable="false" Width="300px">
+            <Template Context="data">
+                <strong>@data.Title @data.FirstName @data.LastName</strong>
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Employee" Property="Title" Title="Job Title" Width="240px" />
+        <RadzenDataGridColumn TItem="Employee" Property="HireDate" Title="Hire Date" FormatString="{0:d}" Width="160px" />
+        <RadzenDataGridColumn TItem="Employee" Property="City" Title="City" Width="200px" />
+    </Columns>
+</RadzenDataGrid>
+
+
+
+@code {
+    IEnumerable<Employee> employees = new List<Employee>();
+    RadzenDataGrid<Employee> grid;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        employees = new List<Employee>()
+        {
+            new Employee(){ EmployeeId = 1, FirstName = "A", LastName = "B", HireDate = DateTime.Today.AddDays(-300), Title= "Manager" },
+            new Employee(){ EmployeeId = 2, ManagerId= 1, FirstName = "Sub", LastName =  "Employee", HireDate = DateTime.Today.AddDays(-200), Title = "Employee"}
+        };
+    }
+
+    void RowRender(RowRenderEventArgs<Employee> args)
+    {
+        args.Expandable = this.employees.Where(e => e.ManagerId == args.Data.EmployeeId).Any();
+    }
+
+    void LoadChildData(DataGridLoadChildDataEventArgs<Employee> args)
+    {
+        args.Data = this.employees.Where(e => e.ManagerId == args.Item.EmployeeId);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+
+        if (firstRender)
+        {
+            await grid.ExpandRow(employees.FirstOrDefault());
+        }
+    }
+}
